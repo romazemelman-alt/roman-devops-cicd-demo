@@ -86,6 +86,6 @@ jobs:
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         with:
           task-definition: ${{ steps.render-task-def.outputs.task-definition }}
-          service: my-devops-cicd-demo-service # Your ECS Fargate service name
-          cluster: my-devops-cicd-demo         # Your ECS cluster name
-          wait-for-service-stability: true     # Ensures GitHub runner waits until the health checks pass
+          service: my-devops-cicd-roma-service
+          cluster: my-devops-cicd-demo
+          wait-for-service-stability: true
