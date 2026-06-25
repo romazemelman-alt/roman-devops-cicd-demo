@@ -1,0 +1,73 @@
+name: CI/CD Pipeline - Build, Push, and Deploy to ECS Fargate
+
+on:
+  push:
+    branches: [ "main" ]
+
+permissions:
+  id-token: write   # Required for AWS OIDC authentication
+  contents: write   # Required for creating and pushing Git tags
+
+jobs:
+  deploy:
+    name: Build & Deploy Application
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Source Code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 # Essential for semantic-version to calculate version history correctly
+
+    - name: Configure AWS Credentials (OIDC)
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: arn:aws:iam::128353492351:role/GitHubActionsECRRole
+        aws-region: eu-north-1
+
+    - name: Log in to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+
+    - name: Determine Semantic Version
+      id: versioning
+      uses: paulhatch/semantic-version@v5.4.0
+      with:
+        tag_prefix: "v"
+        major_pattern: "(MAJOR)"
+        minor_pattern: "(MINOR)"
+        version_format: "${major}.${minor}.${patch}"
+
+    - name: Build, Tag, and Push Docker Image to ECR
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: my-devops-cicd-demo
+        VERSION: ${{ steps.versioning.outputs.version }}
+      run: |
+        echo "Building image version: $VERSION"
+        
+        # Build image utilizing sequential version arguments
+        docker build \
+          --build-arg APP_VERSION=$VERSION \
+          -t $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION \
+          -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+        
+        # Push versioned and latest tags to AWS container registry
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+    - name: Create Git Tag for Release
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git tag v${{ steps.versioning.outputs.version }}
+        git push origin v${{ steps.versioning.outputs.version }}
+
+    - name: Force ECS Fargate Deployment Update
+      run: |
+        echo "Triggering zero-downtime rolling deployment in Fargate..."
+        aws ecs update-service \
+          --cluster my-devops-cicd-demo \
+          --service my-devops-cicd-demo-service \
+          --force-new-deployment \
+          --region eu-north-1
