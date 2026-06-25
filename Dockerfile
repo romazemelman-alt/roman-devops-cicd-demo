@@ -6,6 +6,7 @@ WORKDIR /app
 ARG APP_VERSION
 ENV APP_VERSION=${APP_VERSION}
 
+WORKDIR /app
 # Copy the source code directly
 COPY src/ ./src/
 
