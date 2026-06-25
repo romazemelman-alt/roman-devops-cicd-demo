@@ -69,6 +69,7 @@ jobs:
 
       - name: Download Active Task Definition Schema
         run: |
+          # The query filter is now explicitly set to 'taskDefinition' without extra metadata blocks
           aws ecs describe-task-definition \
             --task-definition my-devops-cicd-demo \
             --query taskDefinition > task-def.json
