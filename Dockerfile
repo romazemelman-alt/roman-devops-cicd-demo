@@ -1,3 +1,7 @@
+# Add this line near the top of your runner stage
+ARG APP_VERSION
+ENV APP_VERSION=${APP_VERSION}
+
 # Multi-stage build for minimal final image size and security
 FROM python:3.11-slim AS builder
 WORKDIR /app
