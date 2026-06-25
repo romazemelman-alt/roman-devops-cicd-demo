@@ -10,7 +10,7 @@ target_group_arn      = "arn:aws:elasticloadbalancing:eu-north-1:128353492351:ta
 # Extracted Hardcoded Configuration Settings
 fargate_cpu        = "256"
 fargate_memory     = "512"
-container_name     = "hello-world-app"
+container_name     = "my-devops-cicd-demo"
 app_port           = 8080
 desired_task_count = 1
 assign_public_ip   = true
