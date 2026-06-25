@@ -78,7 +78,7 @@ jobs:
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
           task-definition: task-def.json
-          container-name: hello-world-app # Must match the exact container_name variable in Terraform
+          container-name: my-devops-cicd-demo
           image: ${{ steps.build-image.outputs.image }}
 
       - name: Deploy Updated Task Definition to ECS Service
