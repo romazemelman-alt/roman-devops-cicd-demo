@@ -87,5 +87,5 @@ jobs:
         with:
           task-definition: ${{ steps.render-task-def.outputs.task-definition }}
           service: my-devops-cicd-roma-service
-          cluster: my-devops-cicd-demo
+          cluster: my-devops-cicd-roma
           wait-for-service-stability: true
