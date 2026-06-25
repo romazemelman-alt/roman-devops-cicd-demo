@@ -63,11 +63,11 @@ jobs:
         git tag v${{ steps.versioning.outputs.version }}
         git push origin v${{ steps.versioning.outputs.version }}
 
-    - name: Force ECS Fargate Deployment Update
-      run: |
-        echo "Triggering zero-downtime rolling deployment in Fargate..."
-        aws ecs update-service \
-          --cluster my-devops-cicd-demo \
-          --service my-devops-cicd-demo-service \
-          --force-new-deployment \
-          --region eu-north-1
+#    - name: Force ECS Fargate Deployment Update
+#      run: |
+#        echo "Triggering zero-downtime rolling deployment in Fargate..."
+#        aws ecs update-service \
+#          --cluster my-devops-cicd-demo \
+#          --service my-devops-cicd-demo-service \
+#          --force-new-deployment \
+#          --region eu-north-1
