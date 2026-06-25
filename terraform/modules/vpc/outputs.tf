@@ -12,3 +12,4 @@ output "private_subnet_ids" {
   value       = aws_subnet.private[*].id # Uses splat expression to grab all private subnet IDs in an array
   description = "List of IDs of private subnets"
 }
+

@@ -52,3 +52,8 @@ variable "assign_public_ip" {
   type        = bool
   description = "Toggle assignment execution logic allowing immediate allocation properties on network nodes."
 }
+
+variable "ecr_repository_name" {
+  type        = string
+  description = "The name of the Amazon ECR repository."
+}

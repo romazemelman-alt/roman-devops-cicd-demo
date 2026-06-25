@@ -77,3 +77,8 @@ variable "unhealthy_threshold" {
   type        = number
   description = "The number of consecutive health check failures required before considering a target unhealthy."
 }
+
+variable "ecr_repository_name" {
+  type        = string
+  description = "The name of the Amazon ECR repository."
+}

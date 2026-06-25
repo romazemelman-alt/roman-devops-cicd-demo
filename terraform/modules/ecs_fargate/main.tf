@@ -1,4 +1,7 @@
 # Container Registry
+data "aws_caller_identity" "current" {}
+data "aws_region" "current" {}
+
 resource "aws_ecr_repository" "repo" {
   name                 = var.cluster_name
   image_tag_mutability = "MUTABLE"
@@ -40,7 +43,7 @@ resource "aws_ecs_task_definition" "app" {
 
   container_definitions = jsonencode([{
     name      = var.container_name
-    image     = "${aws_ecr_repository.repo.repository_url}:latest"
+    image     = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.name}.amazonaws.com/${var.ecr_repository_name}:latest"
     essential = true
     portMappings = [{
       containerPort = var.app_port

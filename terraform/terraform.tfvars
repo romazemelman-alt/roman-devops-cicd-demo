@@ -21,3 +21,5 @@ health_check_timeout  = 5
 health_check_interval = 30
 healthy_threshold     = 3
 unhealthy_threshold   = 3
+
+ecr_repository_name   = "my-devops-cicd-demo"

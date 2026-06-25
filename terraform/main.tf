@@ -48,10 +48,11 @@ module "ecs_fargate" {
   cluster_name = var.cluster_name
 
   # EXCLUSIVELY USING MODULE OUTPUTS HERE (No longer using root vars)
-  vpc_id             = module.vpc.vpc_id
-  private_subnet_ids = module.vpc.private_subnet_ids
-  target_group_arn   = module.alb.target_group_arn
-  alb_security_group_id = module.alb.alb_security_group_id # <-- FIXED THIS LINE
+  vpc_id                = module.vpc.vpc_id
+  private_subnet_ids    = module.vpc.private_subnet_ids
+  target_group_arn      = module.alb.target_group_arn
+  alb_security_group_id = module.alb.alb_security_group_id
+  ecr_repository_name   = var.ecr_repository_name
 
   app_port           = var.app_port
   assign_public_ip   = var.assign_public_ip
