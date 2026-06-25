@@ -1,10 +1,10 @@
 resource "aws_security_group" "alb" {
-  name        = "${var.cluster_name}-alb-sg"
-  vpc_id      = var.vpc_id
+  name   = "${var.cluster_name}-alb-sg"
+  vpc_id = var.vpc_id
 
   ingress {
-    from_port   = 80
-    to_port     = 80
+    from_port   = var.public_port
+    to_port     = var.public_port
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -27,24 +27,24 @@ resource "aws_lb" "main" {
 
 resource "aws_lb_target_group" "app" {
   name        = "${var.cluster_name}-tg"
-  port        = 8080
+  port        = var.app_port
   protocol    = "HTTP"
   vpc_id      = var.vpc_id
   target_type = "ip" # Required for Fargate AWSVPC mode
 
   health_check {
-    path                = "/"
-    healthy_threshold   = 3
-    unhealthy_threshold = 3
-    timeout             = 5
-    interval            = 30
+    path                = var.health_check_path
+    healthy_threshold   = var.healthy_threshold
+    unhealthy_threshold = var.unhealthy_threshold
+    timeout             = var.health_check_timeout
+    interval            = var.health_check_interval
     matcher             = "200"
   }
 }
 
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.main.arn
-  port              = "80"
+  port              = var.public_port
   protocol          = "HTTP"
 
   default_action {

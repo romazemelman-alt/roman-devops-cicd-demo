@@ -34,17 +34,17 @@ resource "aws_ecs_task_definition" "app" {
   family                   = var.cluster_name
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
-  cpu                      = "256"
-  memory                   = "512"
+  cpu                      = var.fargate_cpu
+  memory                   = var.fargate_memory
   execution_role_arn       = aws_iam_role.ecs_execution.arn
 
   container_definitions = jsonencode([{
-    name      = "hello-world-app"
+    name      = var.container_name
     image     = "${aws_ecr_repository.repo.repository_url}:latest"
     essential = true
     portMappings = [{
-      containerPort = 8080
-      hostPort      = 8080
+      containerPort = var.app_port
+      hostPort      = var.app_port
     }]
   }])
 }
@@ -55,8 +55,8 @@ resource "aws_security_group" "ecs_tasks" {
   vpc_id = var.vpc_id
 
   ingress {
-    from_port       = 8080
-    to_port         = 8080
+    from_port       = var.app_port
+    to_port         = var.app_port
     protocol        = "tcp"
     security_groups = [var.alb_security_group_id]
   }
@@ -74,18 +74,18 @@ resource "aws_ecs_service" "main" {
   name            = "${var.cluster_name}-service"
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.app.arn
-  desired_count   = 1
+  desired_count   = var.desired_task_count
   launch_type     = "FARGATE"
 
   network_configuration {
     subnets          = var.private_subnet_ids
     security_groups  = [aws_security_group.ecs_tasks.id]
-    assign_public_ip = true # Set to true if NAT Gateway isn't utilized to download ECR base images
+    assign_public_ip = var.assign_public_ip
   }
 
   load_balancer {
     target_group_arn = var.target_group_arn
-    container_name   = "hello-world-app"
-    container_port   = 8080
+    container_name   = var.container_name
+    container_port   = var.app_port
   }
 }
