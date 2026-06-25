@@ -14,51 +14,77 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Source Code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0 # Essential for semantic-version to calculate version history correctly
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Essential for semantic-version to calculate version history correctly
 
-    - name: Configure AWS Credentials (OIDC)
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        role-to-assume: arn:aws:iam::128353492351:role/GitHubActionsECRRole
-        aws-region: eu-north-1
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::128353492351:role/GitHubActionsECRRole
+          aws-region: eu-north-1
 
-    - name: Log in to Amazon ECR
-      id: login-ecr
-      uses: aws-actions/amazon-ecr-login@v2
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
 
-    - name: Determine Semantic Version
-      id: versioning
-      uses: paulhatch/semantic-version@v5.4.0
-      with:
-        tag_prefix: "v"
-        major_pattern: "(MAJOR)"
-        minor_pattern: "(MINOR)"
-        version_format: "${major}.${minor}.${patch}"
+      - name: Determine Semantic Version
+        id: versioning
+        uses: paulhatch/semantic-version@v5.4.0
+        with:
+          tag_prefix: "v"
+          major_pattern: "(MAJOR)"
+          minor_pattern: "(MINOR)"
+          version_format: "${major}.${minor}.${patch}"
 
-    - name: Build, Tag, and Push Docker Image to ECR
-      env:
-        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        ECR_REPOSITORY: my-devops-cicd-demo
-        VERSION: ${{ steps.versioning.outputs.version }}
-      run: |
-        echo "Building image version: $VERSION"
-        
-        # Build image utilizing sequential version arguments
-        docker build \
-          --build-arg APP_VERSION=$VERSION \
-          -t $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION \
-          -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
-        
-        # Push versioned and latest tags to AWS container registry
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+      - name: Build, Tag, and Push Docker Image to ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: my-devops-cicd-demo
+          VERSION: ${{ steps.versioning.outputs.version }}
+        run: |
+          echo "Building image version: $VERSION"
+          
+          # Build image utilizing sequential version arguments
+          docker build \
+            --build-arg APP_VERSION=$VERSION \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+          
+          # Push versioned and latest tags to AWS container registry
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$VERSION
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          
+          # Output the specific versioned image URI so the ECS steps below can read it
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$VERSION" >> $GITHUB_OUTPUT
 
-    - name: Create Git Tag for Release
-      run: |
-        git config user.name "github-actions[bot]"
-        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-        git tag v${{ steps.versioning.outputs.version }}
-        git push origin v${{ steps.versioning.outputs.version }}
+      - name: Create Git Tag for Release
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag v${{ steps.versioning.outputs.version }}
+          git push origin v${{ steps.versioning.outputs.version }}
+
+      - name: Download Active Task Definition Schema
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition my-devops-cicd-demo \
+            --query taskDefinition > task-def.json
+
+      - name: Update Container Image URI in Task Definition
+        id: render-task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-def.json
+          container-name: hello-world-app # Must match the exact container_name variable in Terraform
+          image: ${{ steps.build-image.outputs.image }}
+
+      - name: Deploy Updated Task Definition to ECS Service
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.render-task-def.outputs.task-definition }}
+          service: my-devops-cicd-demo-service # Your ECS Fargate service name
+          cluster: my-devops-cicd-demo         # Your ECS cluster name
+          wait-for-service-stability: true     # Ensures GitHub runner waits until the health checks pass
